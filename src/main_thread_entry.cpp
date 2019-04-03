@@ -51,38 +51,112 @@ THE SOFTWARE.
 //====================== Your Arduino Example Sketch Begin ===========//
 SERIAL1 Serial  = SERIAL1();   //UART 1
 
+#define  G_LENGTH  128   // Max length of the protocol payload
+#define  LF_CHAR    10
+#define  NULL_CHAR   0
+
 void setup() {
     Serial.begin(9600);
     //while(!Serial);
     Serial.println("begin uart1 grove port...");
 }
 
-int counter=0;
+void process_gps_data(char *str){
+    int val;
+    char id[10]; // message id
+    char hhmmss_ss[10];
+    char status;
+    char lat_g[10];
+    char ns_dir;
+    char long_g[10];
+    char ew_dir;
+    char speed[10];
+    char course[10];
+    char date[10];
+
+    char buf[2] = " ";
+
+    //"$GPRMC 164345.000 A 3722.9791 N 12151.5976 W 0.40 204.24 030419   A*7F";
+    if (str[1] == 'G' && str[2] == 'P' && str[3] == 'R' && str[4] == 'M' && str[5] == 'C' ) {
+        Serial.println("===============================");
+        Serial.println("Found GPRMC format");
+        val = sscanf(str,"%s %s %c %s %c %s %c %s %s %s",id,hhmmss_ss, &status,lat_g, &ns_dir,
+             long_g, &ew_dir, speed, course ,date);
+        Serial.print("id =");
+        Serial.println(id);
+        Serial.print("HHMMSS.SS =");
+        Serial.println(hhmmss_ss);
+        Serial.print("Status =");
+        buf[0] = status;
+        Serial.println(buf);
+        Serial.print("latitude =");
+        Serial.println(lat_g);
+        buf[0] = ns_dir;
+        Serial.print("ns_dir =");
+        Serial.println(buf);
+        Serial.print("longitude =");
+        Serial.println(long_g);
+        buf[0] = ew_dir;
+        Serial.print("ew_dir =");
+        Serial.println(buf);
+        Serial.print("speed =");
+        Serial.println(speed);
+        Serial.print("course =");
+        Serial.println(course);
+        Serial.print("date =");
+        Serial.println(date);
+
+        Serial.print("val =");
+        Serial.println(val,DEC);
+        Serial.println("===============================");
+        //while (true);
+    }
+
+}
+
+bool wait_flag = true;
+bool end_flag = false;
+bool start_flag = false;
+
 void loop() {
     int incomingByte = 0;   // for incoming serial data
-    char str[2] = " ";
+    //char str[G_LENGTH] = "$GPRMC,164345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F";
+    char str[G_LENGTH] = "$GPRMC 164345.000 A 3722.9791 N 12151.5976 W 0.40 204.24 030419   A*7F";
+    int index;
 
-    bool wait_flag = true;
-    // reply only when you receive data:
-     if (Serial.available() > 0) {
-         // read the incoming byte:
-         //if (wait_flag) {
-         //    delay(10);
-         //    wait_flag = false;
-         //}
 
-         incomingByte = Serial.read();
-         str[0] = incomingByte;
+    //process_gps_data(str);
+    //while (true);
+    //Example : $GPRMC,164345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F
+    while (true) {
+         if (Serial.available() > 0) {
 
-         // say what you got:
-         counter++;
-         Serial.print(counter,DEC);
-         Serial.print("I received: ");
-         Serial.print(str);
-         Serial.print("   ASCII value: ");
-         Serial.println(incomingByte, DEC);
-     }
+             incomingByte = Serial.read();
+             if (incomingByte == '$') {
+                 start_flag = true;
+                 end_flag   = false;
+                 index      = 0;
+             }
+             if (incomingByte == LF_CHAR && start_flag == true) {
+                 start_flag = false;
+                 end_flag   = true;
+                 str[index] = NULL_CHAR;
+                 Serial.println(str);
+                 process_gps_data(str);
+             }
+
+             if (start_flag) {
+                 if (incomingByte == ',')
+                     str[index++] = ' ';
+                 else
+                     str[index++] = incomingByte;
+             }
+         }
+
+    }
 }
+
+
 
 //====================== Your Arduino Example Sketch End ===========//
 
