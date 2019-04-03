@@ -96,7 +96,7 @@ char SERIAL1::read (void) {
     } else {
         datacount1--;  // update this immediately before next call back.
         bytedata = g_buf1[buf_rdptr1];
-        if (buf_rdptr1 < BUFSIZE1)
+        if (buf_rdptr1 < BUFSIZE1-1)
             buf_rdptr1++;
         else
             buf_rdptr1 = 0;

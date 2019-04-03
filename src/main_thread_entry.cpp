@@ -49,16 +49,39 @@ THE SOFTWARE.
 
 
 //====================== Your Arduino Example Sketch Begin ===========//
-
+SERIAL1 Serial  = SERIAL1();   //UART 1
 
 void setup() {
+    Serial.begin(9600);
+    //while(!Serial);
+    Serial.println("begin uart1 grove port...");
 }
 
+int counter=0;
 void loop() {
-    digitalWrite(22, HIGH);       // sets the digital pin (YEL LED) on
-    delay(1000);                  // waits for a second
-    digitalWrite(22, LOW);        // sets the digital pin (YEL LED) off
-    delay(1000);                  // waits for a second
+    int incomingByte = 0;   // for incoming serial data
+    char str[2] = " ";
+
+    bool wait_flag = true;
+    // reply only when you receive data:
+     if (Serial.available() > 0) {
+         // read the incoming byte:
+         //if (wait_flag) {
+         //    delay(10);
+         //    wait_flag = false;
+         //}
+
+         incomingByte = Serial.read();
+         str[0] = incomingByte;
+
+         // say what you got:
+         counter++;
+         Serial.print(counter,DEC);
+         Serial.print("I received: ");
+         Serial.print(str);
+         Serial.print("   ASCII value: ");
+         Serial.println(incomingByte, DEC);
+     }
 }
 
 //====================== Your Arduino Example Sketch End ===========//
