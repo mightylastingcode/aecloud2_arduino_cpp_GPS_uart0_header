@@ -51,7 +51,8 @@ THE SOFTWARE.
 //====================== Your Arduino Example Sketch Begin ===========//
 
 // Class Instance Instantiation
-SERIAL1 Serial  = SERIAL1();   //UART 1
+SERIAL1 Serial  = SERIAL1();   //UART 1  PC
+SERIAL  GPS  = SERIAL();   //UART 0  GPS
 
 // Constant
 #define  G_LENGTH  128   // Max length of the protocol payload
@@ -68,6 +69,7 @@ void setup() {
     Serial.begin(9600);
     //while(!Serial);
     Serial.println("begin uart1 grove port...");
+    GPS.begin(9600);
 }
 
 bool wait_flag = true;
@@ -87,9 +89,9 @@ void loop() {
     //while (true);
     //Example : $GPRMC,164345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F
     while (true) {
-         if (Serial.available() > 0) {
+         if (GPS.available() > 0) {
 
-             incomingByte = Serial.read();
+             incomingByte = GPS.read();
              if (incomingByte == '$') {
                  start_flag = true;
                  end_flag   = false;
