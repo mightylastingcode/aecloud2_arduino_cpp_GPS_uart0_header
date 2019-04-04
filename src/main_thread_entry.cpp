@@ -49,17 +49,74 @@ THE SOFTWARE.
 
 
 //====================== Your Arduino Example Sketch Begin ===========//
+
+// Class Instance Instantiation
 SERIAL1 Serial  = SERIAL1();   //UART 1
 
+// Constant
 #define  G_LENGTH  128   // Max length of the protocol payload
 #define  LF_CHAR    10
 #define  NULL_CHAR   0
 
+// Subroutine Prototype Declaration
+float lat_convert(char *lat, char ns_dir);
+float long_convert(char *long_s, char ew_dir);
+void process_gps_data(char *str);
+
+// Main Sketch (Setup & Loop)
 void setup() {
     Serial.begin(9600);
     //while(!Serial);
     Serial.println("begin uart1 grove port...");
 }
+
+bool wait_flag = true;
+bool end_flag = false;
+bool start_flag = false;
+
+void loop() {
+    int incomingByte = 0;   // for incoming serial data
+    // Test examples
+    //char str[G_LENGTH] = "$GPRMC,164345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F";
+    //char str[G_LENGTH] = "$GPRMC 164345.000 A 3722.9791 N 12151.5976 W 0.40 204.24 030419   A*7F";
+    char str[G_LENGTH];
+    int index;
+
+
+    //process_gps_data(str);
+    //while (true);
+    //Example : $GPRMC,164345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F
+    while (true) {
+         if (Serial.available() > 0) {
+
+             incomingByte = Serial.read();
+             if (incomingByte == '$') {
+                 start_flag = true;
+                 end_flag   = false;
+                 index      = 0;
+             }
+             if (incomingByte == LF_CHAR && start_flag == true) {
+                 start_flag = false;
+                 end_flag   = true;
+                 str[index] = NULL_CHAR;
+                 Serial.println(str);
+                 process_gps_data(str);
+             }
+
+             if (start_flag) {
+                 if (incomingByte == ',')
+                     str[index++] = ' ';
+                 else
+                     str[index++] = incomingByte;
+             }
+         }
+
+    }
+}
+
+//***********************************
+// Subroutine Body Definition
+//***********************************
 
 // convert from ddmm.ss (degree format) to dd.xxxx (decimal format)
 float lat_convert(char *lat, char ns_dir) {
@@ -176,50 +233,6 @@ void process_gps_data(char *str){
     }
 
 }
-
-bool wait_flag = true;
-bool end_flag = false;
-bool start_flag = false;
-
-void loop() {
-    int incomingByte = 0;   // for incoming serial data
-    //char str[G_LENGTH] = "$GPRMC,164345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F";
-    char str[G_LENGTH] = "$GPRMC 164345.000 A 3722.9791 N 12151.5976 W 0.40 204.24 030419   A*7F";
-    int index;
-
-
-    //process_gps_data(str);
-    //while (true);
-    //Example : $GPRMC,164345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F
-    while (true) {
-         if (Serial.available() > 0) {
-
-             incomingByte = Serial.read();
-             if (incomingByte == '$') {
-                 start_flag = true;
-                 end_flag   = false;
-                 index      = 0;
-             }
-             if (incomingByte == LF_CHAR && start_flag == true) {
-                 start_flag = false;
-                 end_flag   = true;
-                 str[index] = NULL_CHAR;
-                 Serial.println(str);
-                 process_gps_data(str);
-             }
-
-             if (start_flag) {
-                 if (incomingByte == ',')
-                     str[index++] = ' ';
-                 else
-                     str[index++] = incomingByte;
-             }
-         }
-
-    }
-}
-
-
 
 //====================== Your Arduino Example Sketch End ===========//
 
