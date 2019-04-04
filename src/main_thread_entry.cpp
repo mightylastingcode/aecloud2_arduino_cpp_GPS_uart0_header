@@ -61,6 +61,61 @@ void setup() {
     Serial.println("begin uart1 grove port...");
 }
 
+// convert from ddmm.ss (degree format) to dd.xxxx (decimal format)
+float lat_convert(char *lat, char ns_dir) {
+    char buf[5];
+    int  dd, mm, ss;
+
+    buf[0] = lat[0];
+    buf[1] = lat[1];
+    buf[2] = '\0';
+    dd = atoi(buf);
+
+    buf[0] = lat[2];
+    buf[1] = lat[3];
+    buf[2] = '\0';
+    mm = atoi(buf);
+
+    buf[0] = lat[5];
+    buf[1] = lat[6];
+    buf[2] = '\0';
+    ss = atoi(buf);
+
+    float latitude;
+    latitude = (float) dd + (float) mm / 60.0 + (float) ss / 3600.0;
+    if (ns_dir == 'S')
+        latitude = latitude * -1.0;
+    return latitude;
+
+}
+
+// convert from ddmm.ss (degree format) to dd.xxxx (decimal format)
+float long_convert(char *long_s, char ew_dir) {
+    char buf[5];
+    int  dd, mm, ss;
+
+    buf[0] = long_s[0];
+    buf[1] = long_s[1];
+    buf[2] = long_s[2];
+    buf[3] = '\0';
+    dd = atoi(buf);
+
+    buf[0] = long_s[3];
+    buf[1] = long_s[4];
+    buf[2] = '\0';
+    mm = atoi(buf);
+
+    buf[0] = long_s[6];
+    buf[1] = long_s[7];
+    buf[2] = '\0';
+    ss = atoi(buf);
+
+    float longitude;
+    longitude = (float) dd + (float) mm / 60.0 + (float) ss / 3600.0;
+    if (ew_dir == 'W')
+        longitude = longitude * -1.0;
+    return longitude;
+}
 void process_gps_data(char *str){
     int val;
     char id[10]; // message id
@@ -105,9 +160,17 @@ void process_gps_data(char *str){
         Serial.println(course);
         Serial.print("date =");
         Serial.println(date);
-
         Serial.print("val =");
         Serial.println(val,DEC);
+
+        float lat_dec;
+        float long_dec;
+        lat_dec = lat_convert(lat_g, ns_dir);
+        long_dec = long_convert(long_g, ew_dir);
+
+        char event[40];
+        sprintf (event, "Latitude = %8.2f Longitude = %8.2f \n",lat_dec, long_dec);
+        Serial.println(event);
         Serial.println("===============================");
         //while (true);
     }
