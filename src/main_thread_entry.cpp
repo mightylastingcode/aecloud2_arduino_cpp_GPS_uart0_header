@@ -57,12 +57,14 @@ SERIAL  GPS  = SERIAL();   //UART 0  GPS
 // Constant
 #define  G_LENGTH  128   // Max length of the protocol payload
 #define  LF_CHAR    10
+#define  CR_CHAR    13
 #define  NULL_CHAR   0
 
 // Subroutine Prototype Declaration
 float lat_convert(char *lat, char ns_dir);
 float long_convert(char *long_s, char ew_dir);
 void process_gps_data(char *str);
+int process_xor_chksum(char *data, int len);
 
 // Main Sketch (Setup & Loop)
 void setup() {
@@ -97,18 +99,29 @@ void loop() {
                  end_flag   = false;
                  index      = 0;
              }
-             if (incomingByte == LF_CHAR && start_flag == true) {
+             if (incomingByte == CR_CHAR && start_flag == true) {
                  start_flag = false;
                  end_flag   = true;
                  str[index] = NULL_CHAR;
                  Serial.println(str);
-                 process_gps_data(str);
+
+                 // check str length
+                 int len = strlen(str);
+                 Serial.print("Str len = ");
+                 Serial.println(len,DEC);
+                 //Serial.println(str+len-2);
+                 //Serial.println(str+len-1);
+
+                 // process to verify checksum
+                 int status = process_xor_chksum(str,len);
+
+                 if (!status) process_gps_data(str);
              }
 
              if (start_flag) {
-                 if (incomingByte == ',')
-                     str[index++] = ' ';
-                 else
+                 //if (incomingByte == ',')
+                 //    str[index++] = ' ';
+                 //else
                      str[index++] = incomingByte;
              }
          }
@@ -239,14 +252,44 @@ void process_gps_data(char *str){
             Serial.println(" [Invalid Data Status]");
         } else {
             Serial.print("Status =");
-            buf[0] = status;
-            Serial.print(buf);
+            //buf[0] = status;
+            //Serial.print(buf);
             Serial.println(" [Unknown Status]");
         }
         Serial.println("===============================");
     }
 
 }
+
+int process_xor_chksum(char *data, int len) {
+    char chksum = 0;
+    char chksum_cal;
+    for (int i=1; i<len-3; i++) {
+        chksum ^= data[i];
+        //printf("i=%d data = %c (%x)", i, data[i], data[i]);
+        //printf(" Checksum_xor = %x \n",chksum);
+    }
+    Serial.print("sum of all the data including checksum = ");
+    Serial.println(chksum, HEX);
+
+    char chksum_rec[3] = "1A";
+    chksum_rec[0] = data[len-2];
+    chksum_rec[1] = data[len-1];
+
+    int num = (int)strtol(chksum_rec, NULL, 16);       // number base 16
+    Serial.print("checksum_rec (hex) =  ");
+    Serial.println(num, HEX);
+
+    if (num == chksum) {
+        Serial.println("Matched checksum!");
+        return 0;
+    } else {
+        Serial.println("Bad checksum!");
+        return -1;
+    }
+}
+
+
 
 //====================== Your Arduino Example Sketch End ===========//
 
@@ -263,4 +306,3 @@ void main_thread_entry(void)
         delay(1);  // required for the thread if delay()does not exist in the loop() function.
     }
 }
-
