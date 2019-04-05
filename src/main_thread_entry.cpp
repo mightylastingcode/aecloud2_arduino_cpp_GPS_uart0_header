@@ -103,19 +103,20 @@ void loop() {
                  start_flag = false;
                  end_flag   = true;
                  str[index] = NULL_CHAR;
-                 Serial.println(str);
+                 Serial.print(str);
 
-                 // check str length
+                 // check str length (for testing only)
                  int len = strlen(str);
-                 Serial.print("Str len = ");
-                 Serial.println(len,DEC);
+                 //Serial.print("Str len = ");
+                 //Serial.println(len,DEC);
                  //Serial.println(str+len-2);
                  //Serial.println(str+len-1);
 
                  // process to verify checksum
                  int status = process_xor_chksum(str,len);
 
-                 if (!status) process_gps_data(str);
+                 if (!status)
+                     process_gps_data(str);
              }
 
              if (start_flag) {
@@ -202,62 +203,75 @@ void process_gps_data(char *str){
     char date[10];
 
     char buf[2] = " ";
+    bool foundgpgga = false;
+    bool foundgprmc = false;
 
-    //"$GPRMC 164345.000 A 3722.9791 N 12151.5976 W 0.40 204.24 030419   A*7F";
-    if (str[1] == 'G' && str[2] == 'P' && str[3] == 'R' && str[4] == 'M' && str[5] == 'C' ) {
+    int len = strlen(str);
+    for (int i=0; i<len; i++)
+        if (str[i] == ',')
+            str[i] = ' ';
+
+    if (str[1] == 'G' && str[2] == 'P' && str[3] == 'G' && str[4] == 'G' && str[5] == 'A' ) {
+    //Example: $GPGGA,205201.000,3722.9898,N,12151.6010,W,2,8,1.00,33.6,M,-25.5,M,0000,0000*5C
+        Serial.println("===============================");
+        Serial.println("Found GPGGA format");
+        val = sscanf(str,"%s %s %s %c %s %c",id,hhmmss_ss, lat_g, &ns_dir,long_g, &ew_dir);
+        foundgpgga = true;
+        Serial.print("val =");
+        Serial.println(val,DEC);
+    } else if (str[1] == 'G' && str[2] == 'P' && str[3] == 'R' && str[4] == 'M' && str[5] == 'C' ) {
+    //Example: $GPRMC,064345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F
         Serial.println("===============================");
         Serial.println("Found GPRMC format");
-        val = sscanf(str,"%s %s %c %s %c %s %c %s %s %s",id,hhmmss_ss, &status,lat_g, &ns_dir,
-             long_g, &ew_dir, speed, course ,date);
+        val = sscanf(str,"%s %s %c %s %c %s %c %s %s %s",id,hhmmss_ss, &status,lat_g, &ns_dir,long_g, &ew_dir, speed, course ,date);
+        foundgprmc = true;
+        Serial.print("val =");
+        Serial.println(val,DEC);
+    }
+    if ((foundgpgga && val == 6) || (foundgprmc && val == 10 && status == 'A')) {
+        Serial.println("Extract data successfully.  Valid data status!");
+
         Serial.print("id =");
         Serial.println(id);
-        if (status == 'A') {
-            Serial.print("HHMMSS.SS =");
-            Serial.println(hhmmss_ss);
+        Serial.print("HHMMSS.SS =");
+        Serial.println(hhmmss_ss);
+        Serial.print("latitude =");
+        Serial.println(lat_g);
+        buf[0] = ns_dir;
+        Serial.print("ns_dir =");
+        Serial.println(buf);
+        Serial.print("longitude =");
+        Serial.println(long_g);
+        buf[0] = ew_dir;
+        Serial.print("ew_dir =");
+        Serial.println(buf);
+
+        if (foundgprmc) {
             Serial.print("Status =");
             buf[0] = status;
             Serial.print(buf);
+            Serial.println(buf);
             Serial.println(" [Valid Data Status]");
-            Serial.print("latitude =");
-            Serial.println(lat_g);
-            buf[0] = ns_dir;
-            Serial.print("ns_dir =");
-            Serial.println(buf);
-            Serial.print("longitude =");
-            Serial.println(long_g);
-            buf[0] = ew_dir;
-            Serial.print("ew_dir =");
-            Serial.println(buf);
-            Serial.print("speed =");
-            Serial.println(speed);
-            Serial.print("course =");
-            Serial.println(course);
+
+            //Serial.print("speed =");
+            //Serial.println(speed);
+            //Serial.print("course =");
+            //Serial.println(course);
             Serial.print("date =");
             Serial.println(date);
-            Serial.print("val =");
-            Serial.println(val,DEC);
-
-            float lat_dec;
-            float long_dec;
-            lat_dec = lat_convert(lat_g, ns_dir);
-            long_dec = long_convert(long_g, ew_dir);
-
-            char event[40];
-            sprintf (event, "Latitude = %8.2f Longitude = %8.2f \n",lat_dec, long_dec);
-            Serial.println(event);
-        } else if (status == 'V') {
-            Serial.print("Status =");
-            buf[0] = status;
-            Serial.print(buf);
-            Serial.println(" [Invalid Data Status]");
-        } else {
-            Serial.print("Status =");
-            //buf[0] = status;
-            //Serial.print(buf);
-            Serial.println(" [Unknown Status]");
         }
+        float lat_dec;
+        float long_dec;
+        lat_dec = lat_convert(lat_g, ns_dir);
+        long_dec = long_convert(long_g, ew_dir);
+
+        char event[40];
+        sprintf (event, "Latitude = %8.2f Longitude = %8.2f \n",lat_dec, long_dec);
+        Serial.println(event);
         Serial.println("===============================");
     }
+
+
 
 }
 
@@ -269,22 +283,22 @@ int process_xor_chksum(char *data, int len) {
         //printf("i=%d data = %c (%x)", i, data[i], data[i]);
         //printf(" Checksum_xor = %x \n",chksum);
     }
-    Serial.print("sum of all the data including checksum = ");
-    Serial.println(chksum, HEX);
+    //Serial.print("sum of all the data including checksum = ");
+    //Serial.println(chksum, HEX);
 
     char chksum_rec[3] = "1A";
     chksum_rec[0] = data[len-2];
     chksum_rec[1] = data[len-1];
 
     int num = (int)strtol(chksum_rec, NULL, 16);       // number base 16
-    Serial.print("checksum_rec (hex) =  ");
-    Serial.println(num, HEX);
+    //Serial.print("checksum_rec (hex) =  ");
+    //Serial.println(num, HEX);
 
     if (num == chksum) {
-        Serial.println("Matched checksum!");
+        Serial.println("  [Matched checksum!]");
         return 0;
     } else {
-        Serial.println("Bad checksum!");
+        Serial.println("  [Bad checksum!]");
         return -1;
     }
 }
