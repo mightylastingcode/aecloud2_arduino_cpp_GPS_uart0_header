@@ -63,7 +63,7 @@ SERIAL  GPS  = SERIAL();   //UART 0  GPS
 // Subroutine Prototype Declaration
 float lat_convert(char *lat, char ns_dir);
 float long_convert(char *long_s, char ew_dir);
-void process_gps_data(char *str);
+void process_gps_data(char *str, int method);
 int process_xor_chksum(char *data, int len);
 
 // Main Sketch (Setup & Loop)
@@ -103,7 +103,7 @@ void loop() {
                  start_flag = false;
                  end_flag   = true;
                  str[index] = NULL_CHAR;
-                 Serial.print(str);
+                 //Serial.print(str);
 
                  // check str length (for testing only)
                  int len = strlen(str);
@@ -116,7 +116,7 @@ void loop() {
                  int status = process_xor_chksum(str,len);
 
                  if (!status)
-                     process_gps_data(str);
+                     process_gps_data(str, 0);  // process GPRMC data
              }
 
              if (start_flag) {
@@ -189,7 +189,10 @@ float long_convert(char *long_s, char ew_dir) {
         longitude = longitude * -1.0;
     return longitude;
 }
-void process_gps_data(char *str){
+
+//  Input: Data is saved in str.
+//         Method = 0 GPGGA or Method = 1 GPRMC
+void process_gps_data(char *str, int method){
     int val;
     char id[10]; // message id
     char hhmmss_ss[10];
@@ -211,18 +214,20 @@ void process_gps_data(char *str){
         if (str[i] == ',')
             str[i] = ' ';
 
-    if (str[1] == 'G' && str[2] == 'P' && str[3] == 'G' && str[4] == 'G' && str[5] == 'A' ) {
+    if (method == 0 && str[1] == 'G' && str[2] == 'P' && str[3] == 'G' && str[4] == 'G' && str[5] == 'A' ) {
     //Example: $GPGGA,205201.000,3722.9898,N,12151.6010,W,2,8,1.00,33.6,M,-25.5,M,0000,0000*5C
         Serial.println("===============================");
         Serial.println("Found GPGGA format");
+        Serial.println(str);
         val = sscanf(str,"%s %s %s %c %s %c",id,hhmmss_ss, lat_g, &ns_dir,long_g, &ew_dir);
         foundgpgga = true;
         Serial.print("val =");
         Serial.println(val,DEC);
-    } else if (str[1] == 'G' && str[2] == 'P' && str[3] == 'R' && str[4] == 'M' && str[5] == 'C' ) {
+    } else if (method == 1 && str[1] == 'G' && str[2] == 'P' && str[3] == 'R' && str[4] == 'M' && str[5] == 'C' ) {
     //Example: $GPRMC,064345.000,A,3722.9791,N,12151.5976,W,0.40,204.24,030419,,,A*7F
         Serial.println("===============================");
         Serial.println("Found GPRMC format");
+        Serial.println(str);
         val = sscanf(str,"%s %s %c %s %c %s %c %s %s %s",id,hhmmss_ss, &status,lat_g, &ns_dir,long_g, &ew_dir, speed, course ,date);
         foundgprmc = true;
         Serial.print("val =");
@@ -249,7 +254,6 @@ void process_gps_data(char *str){
         if (foundgprmc) {
             Serial.print("Status =");
             buf[0] = status;
-            Serial.print(buf);
             Serial.println(buf);
             Serial.println(" [Valid Data Status]");
 
@@ -295,10 +299,10 @@ int process_xor_chksum(char *data, int len) {
     //Serial.println(num, HEX);
 
     if (num == chksum) {
-        Serial.println("  [Matched checksum!]");
+        //Serial.println("  [Matched checksum!]");
         return 0;
     } else {
-        Serial.println("  [Bad checksum!]");
+        //Serial.println("  [Bad checksum!]");
         return -1;
     }
 }
