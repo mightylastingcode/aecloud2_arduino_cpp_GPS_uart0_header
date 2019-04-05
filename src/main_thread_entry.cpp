@@ -198,40 +198,52 @@ void process_gps_data(char *str){
              long_g, &ew_dir, speed, course ,date);
         Serial.print("id =");
         Serial.println(id);
-        Serial.print("HHMMSS.SS =");
-        Serial.println(hhmmss_ss);
-        Serial.print("Status =");
-        buf[0] = status;
-        Serial.println(buf);
-        Serial.print("latitude =");
-        Serial.println(lat_g);
-        buf[0] = ns_dir;
-        Serial.print("ns_dir =");
-        Serial.println(buf);
-        Serial.print("longitude =");
-        Serial.println(long_g);
-        buf[0] = ew_dir;
-        Serial.print("ew_dir =");
-        Serial.println(buf);
-        Serial.print("speed =");
-        Serial.println(speed);
-        Serial.print("course =");
-        Serial.println(course);
-        Serial.print("date =");
-        Serial.println(date);
-        Serial.print("val =");
-        Serial.println(val,DEC);
+        if (status == 'A') {
+            Serial.print("HHMMSS.SS =");
+            Serial.println(hhmmss_ss);
+            Serial.print("Status =");
+            buf[0] = status;
+            Serial.print(buf);
+            Serial.println(" [Valid Data Status]");
+            Serial.print("latitude =");
+            Serial.println(lat_g);
+            buf[0] = ns_dir;
+            Serial.print("ns_dir =");
+            Serial.println(buf);
+            Serial.print("longitude =");
+            Serial.println(long_g);
+            buf[0] = ew_dir;
+            Serial.print("ew_dir =");
+            Serial.println(buf);
+            Serial.print("speed =");
+            Serial.println(speed);
+            Serial.print("course =");
+            Serial.println(course);
+            Serial.print("date =");
+            Serial.println(date);
+            Serial.print("val =");
+            Serial.println(val,DEC);
 
-        float lat_dec;
-        float long_dec;
-        lat_dec = lat_convert(lat_g, ns_dir);
-        long_dec = long_convert(long_g, ew_dir);
+            float lat_dec;
+            float long_dec;
+            lat_dec = lat_convert(lat_g, ns_dir);
+            long_dec = long_convert(long_g, ew_dir);
 
-        char event[40];
-        sprintf (event, "Latitude = %8.2f Longitude = %8.2f \n",lat_dec, long_dec);
-        Serial.println(event);
+            char event[40];
+            sprintf (event, "Latitude = %8.2f Longitude = %8.2f \n",lat_dec, long_dec);
+            Serial.println(event);
+        } else if (status == 'V') {
+            Serial.print("Status =");
+            buf[0] = status;
+            Serial.print(buf);
+            Serial.println(" [Invalid Data Status]");
+        } else {
+            Serial.print("Status =");
+            buf[0] = status;
+            Serial.print(buf);
+            Serial.println(" [Unknown Status]");
+        }
         Serial.println("===============================");
-        //while (true);
     }
 
 }
